@@ -21,7 +21,14 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --]]
 
-local _VERSION = "1.5.1.3"
+--[[
+Note: 
+This is a modified version of Jumper, which includes specific changes
+to handle nodes that can be traversed from specific directions, such as one-way tiles.
+This is a work in progress, not completely bug-free.
+--]]
+
+local _VERSION = "1.5.1.3-ex"
 if (...) then
   local _PATH = (...):gsub('[^%.]+$','')
   local insert = table.insert
@@ -50,6 +57,13 @@ if (...) then
       node.opened, node.closed, node.parent = nil, nil, nil
     end
     nodeList = {}
+  end
+
+  -- Returns the unit vector of move from <x,y> to <gx,gy>
+  local function u_v(gx,gy,x,y)
+    local dx = gx-x
+    local dy = gy-y
+    return dx/max(1,abs(dx)), dy/max(1,abs(dy))
   end
 
   -- Performs a traceback from the goal node to the start node
@@ -98,46 +112,51 @@ if (...) then
       px,py = parent.x,parent.y
 
       -- Gets the direction of move
-      dx = (x-px)/max(abs(x-px),1)
-      dy = (y-py)/max(abs(y-py),1)
+      dx,dy = u_v(x,y,px,py)
 
         -- Diagonal move case
       if dx~=0 and dy~=0 then
         -- Natural neighbours
-        if self.grid:isWalkableAt(x,y+dy) then neighbours[#neighbours+1]={x = x, y = y+dy } end
-        if self.grid:isWalkableAt(x+dx,y) then neighbours[#neighbours+1]={x = x+dx, y = y} end
-        if self.grid:isWalkableAt(x,y+dy) or self.grid:isWalkableAt(x+dx,y) then neighbours[#neighbours+1]={x = x+dx, y = y+dy} end
+        if self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) then neighbours[#neighbours+1]={x = x, y = y+dy } end
+        if self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) then neighbours[#neighbours+1]={x = x+dx, y = y} end
+        if self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) or self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) then
+          neighbours[#neighbours+1]={x = x+dx, y = y+dy}
+        end
         -- Forced neighbours
-        if (not self.grid:isWalkableAt(x-dx,y)) and self.grid:isWalkableAt(x,y+dy) then neighbours[#neighbours+1]={x = x-dx, y = y+dy} end
-        if (not self.grid:isWalkableAt(x,y-dy)) and self.grid:isWalkableAt(x+dx,y) then neighbours[#neighbours+1]={x = x+dx, y = y-dy} end
+        if (not self.grid:isWalkableAt(x-dx,y,u_v(x-dx,y,x,y))) and self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) then
+          neighbours[#neighbours+1]={x = x-dx, y = y+dy}
+        end
+        if (not self.grid:isWalkableAt(x,y-dy,u_v(x,y-dy,x,y))) and self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) then
+          neighbours[#neighbours+1]={x = x+dx, y = y-dy}
+        end
       else
         -- Move along Y-axis case
         if dx==0 then
-          if self.grid:isWalkableAt(x,y+dy) then
+          if self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) then
             -- Natural neighbour is ahead along Y
-            if self.grid:isWalkableAt(x,y+dy) then neighbours[#neighbours+1]={x = x, y = y +dy} end
+            if self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) then neighbours[#neighbours+1]={x = x, y = y +dy} end
             -- Forced neighbours are left and right ahead along Y
-            if (not self.grid:isWalkableAt(x+1,y)) then neighbours[#neighbours+1]={x = x+1, y = y+dy} end
-            if (not self.grid:isWalkableAt(x-1,y)) then neighbours[#neighbours+1]={x = x-1, y = y+dy} end
+            if (not self.grid:isWalkableAt(x+1,y,u_v(x+1,y,x,y))) then neighbours[#neighbours+1]={x = x+1, y = y+dy} end
+            if (not self.grid:isWalkableAt(x-1,y,u_v(x-1,y,x,y))) then neighbours[#neighbours+1]={x = x-1, y = y+dy} end
           end
           --Tweak : In case diagonal moves are forbidden
           if not self.allowDiagonal then
-            if self.grid:isWalkableAt(x+1,y) then neighbours[#neighbours+1]={x = x+1, y = y} end
-            if self.grid:isWalkableAt(x-1,y) then neighbours[#neighbours+1]={x = x-1, y = y} end
+            if self.grid:isWalkableAt(x+1,y,u_v(x+1,y,x,y)) then neighbours[#neighbours+1]={x = x+1, y = y} end
+            if self.grid:isWalkableAt(x-1,y,u_v(x-1,y,x,y)) then neighbours[#neighbours+1]={x = x-1, y = y} end
           end
         else
         -- Move along X-axis case
-          if self.grid:isWalkableAt(x+dx,y) then
+          if self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) then
             -- Natural neighbour is ahead along X
-            if self.grid:isWalkableAt(x+dx,y) then neighbours[#neighbours+1]={x = x+dx, y = y} end
+            if self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) then neighbours[#neighbours+1]={x = x+dx, y = y} end
             -- Forced neighbours are up and down ahead along X
-            if (not self.grid:isWalkableAt(x,y+1)) then neighbours[#neighbours+1]={x = x+dx, y = y+1} end
-            if (not self.grid:isWalkableAt(x,y-1)) then neighbours[#neighbours+1]={x = x+dx, y = y-1} end
+            if (not self.grid:isWalkableAt(x,y+1,u_v(x,y+1,x,y))) then neighbours[#neighbours+1]={x = x+dx, y = y+1} end
+            if (not self.grid:isWalkableAt(x,y-1,u_v(x,y-1,x,y))) then neighbours[#neighbours+1]={x = x+dx, y = y-1} end
           end
           --Tweak : In case diagonal moves are forbidden
           if not self.allowDiagonal then
-            if self.grid:isWalkableAt(x,y+1) then neighbours[#neighbours+1]={x = x, y = y+1} end
-            if self.grid:isWalkableAt(x,y-1) then neighbours[#neighbours+1]={x = x, y = y-1} end
+            if self.grid:isWalkableAt(x,y+1,u_v(x,y+1,x,y)) then neighbours[#neighbours+1]={x = x, y = y+1} end
+            if self.grid:isWalkableAt(x,y-1,u_v(x,y-1,x,y)) then neighbours[#neighbours+1]={x = x, y = y-1} end
           end
         end
       end
@@ -166,7 +185,7 @@ if (...) then
     local jphx,jphy,jpvx,jpvy
 
     -- If the node to be examined is unwalkable, return nil
-    if not self.grid:isWalkableAt(x,y) then return nil end
+    if not self.grid:isWalkableAt(x,y,u_v(x,y,px,py)) then return nil end
 
     -- If the node to be examined is the endNode, return this node
     if self.grid:getNodeAt(x,y) == self.endNode then return x,y end
@@ -174,8 +193,8 @@ if (...) then
     -- Diagonal search case
     if dx~=0 and dy~=0 then
       -- Current node is a jump point if one of his leftside/rightside neighbours ahead is forced
-      if (self.grid:isWalkableAt(x-dx,y+dy) and (not self.grid:isWalkableAt(x-dx,y))) or
-         (self.grid:isWalkableAt(x+dx,y-dy) and (not self.grid:isWalkableAt(x,y-dy))) then
+      if (self.grid:isWalkableAt(x-dx,y+dy,u_v(x-dx,y+dy,x,y)) and (not self.grid:isWalkableAt(x-dx,y,u_v(x-dx,y,x,y)))) or
+         (self.grid:isWalkableAt(x+dx,y-dy,u_v(x+dx,y-dy,x,y)) and (not self.grid:isWalkableAt(x,y-dy,u_v(x,y-dy,x,y)))) then
         return x,y
       end
     else
@@ -183,25 +202,31 @@ if (...) then
       if dx~=0 then
         if self.allowDiagonal then
           -- Current node is a jump point if one of his upside/downside neighbours is forced
-          if (self.grid:isWalkableAt(x+dx,y+1) and (not self.grid:isWalkableAt(x,y+1))) or
-             (self.grid:isWalkableAt(x+dx,y-1) and (not self.grid:isWalkableAt(x,y-1))) then
+          if (self.grid:isWalkableAt(x+dx,y+1,u_v(x+dx,y+1,x,y)) and (not self.grid:isWalkableAt(x,y+1,u_v(x,y+1,x,y)))) or
+             (self.grid:isWalkableAt(x+dx,y-1,u_v(x+dx,y-1,x,y)) and (not self.grid:isWalkableAt(x,y-1,u_v(x,y-1,x,y)))) then
             return x,y
           end
         else
           -- Tweak : in case diagonal moves are forbidden
-          if self.grid:isWalkableAt(x+1,y) or self.grid:isWalkableAt(x-1,y) then return x,y end
+          if self.grid:isWalkableAt(x+1,y,u_v(x+1,y,x,y)) or
+             self.grid:isWalkableAt(x-1,y,u_v(x-1,y,x,y)) then
+            return x,y
+          end
         end
       else
       -- Search along Y-axis case
         -- Current node is a jump point if one of his leftside/rightside neighbours is forced
         if self.allowDiagonal then
-          if (self.grid:isWalkableAt(x+1,y+dy) and (not self.grid:isWalkableAt(x+1,y))) or
-             (self.grid:isWalkableAt(x-1,y+dy) and (not self.grid:isWalkableAt(x-1,y))) then
+          if (self.grid:isWalkableAt(x+1,y+dy,u_v(x+1,y+dy,x,y)) and (not self.grid:isWalkableAt(x+1,y,u_v(x+1,y,x,y)))) or
+             (self.grid:isWalkableAt(x-1,y+dy,u_v(x-1,y+dy,x,y)) and (not self.grid:isWalkableAt(x-1,y,u_v(x-1,y,x,y)))) then
             return x,y
           end
         else
           -- Tweak : in case diagonal moves are forbidden
-          if self.grid:isWalkableAt(x,y+1) or self.grid:isWalkableAt(x,y-1) then return x,y end
+          if self.grid:isWalkableAt(x,y+1,u_v(x,y+1,x,y)) or
+             self.grid:isWalkableAt(x,y-1,u_v(x,y-1,x,y)) then
+            return x,y
+          end
         end
       end
     end
@@ -219,7 +244,8 @@ if (...) then
 
     -- Recursive search for a jump point diagonally
     if self.allowDiagonal then
-      if self.grid:isWalkableAt(x+dx,y) or self.grid:isWalkableAt(x,y+dy) then
+      if self.grid:isWalkableAt(x+dx,y,u_v(x+dx,y,x,y)) or
+         self.grid:isWalkableAt(x,y+dy,u_v(x,y+dy,x,y)) then
         return jump(self,x+dx,y+dy,x,y)
       end
     end
@@ -284,12 +310,12 @@ end
     autoFill = false -- Will not fill paths by default
   }
 
-  -- Custom initializer (walkable, allowDiagonal,heuristic and autoFill are optional)
-  function JPS:__init(map,walkable,allowDiagonal,heuristicName,autoFill)
-    self.grid = Grid(map,walkable)
+  -- Custom initializer (allowDiagonal,heuristic and autoFill are optional)
+  function JPS:__init(map,allowDiagonal,autoFill,heuristicName)
+    self.grid = Grid(map)
     self.allowDiagonal = allowDiagonal
-    self:setHeuristic(heuristicName or 'MANHATTAN')
     self.autoFill = autoFill or false
+    self:setHeuristic(heuristicName or 'MANHATTAN')
   end
 
   -- Changes the heuristic

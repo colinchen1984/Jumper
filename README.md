@@ -1,28 +1,18 @@
 Jumper
 ======
 
-__Jumper__ is a pathfinding library designed for __uniform-cost 2D grid-based__ games featuring [Jump Point Search][] algorithm.<br/>
-It is __very__ fast, __lightweight__ and generates almost __no memory overhead while performing a search__.<br/>
-As such, it might be an interesting option for __pathfinding computation on 2D maps__.<br/>
-It also features a __clean public interface__ with __chaining features__ which makes it __very friendly and easy to use__.<br/>
+This is a modified version of the pathfinding library [Jumper](https://github.com/Yonaba/Jumper/blob/master). <br/>
+It features the same features as the official release. The specific change is an experimental feature included to support tiles with specific rules of walkability, such as one-way tiles.
 
-__Jumper__ is written in pure [Lua][]. Thus, it is not __framework-related__ and can be used in __any project__ embedding [Lua][] code.
 
-<center><img src="http://ompldr.org/vZjltNQ" alt="" width="500" height="391" border="0" /></center>
+<center><img src="???" alt="" width="500" height="391" border="0" /></center>
 
 ##Installation
-The current repository can be retrieved locally on your computer via:
+The current repository can be retrieved locally on your computer using the following bash script:
 
-###Bash
 ```bash
-git clone git://github.com/Yonaba/Jumper.git --recursive
+git clone -b experimental git://github.com/Yonaba/Jumper.git --recursive
 ````
-
-###Download
-You may also download these files as an archive : [zip](https://github.com/Yonaba/Jumper/zipball/master) or [tarball](https://github.com/Yonaba/Jumper/tarball/master)
-
-##Examples of Use
-Find several examples of use for __Jumper__, made with various Lua-based frameworks and game engines in this separated repository: [Jumper-Examples](https://github.com/Yonaba/Jumper-Examples)
 
 ##Usage##
 ###Adding Jumper to your project###
@@ -39,58 +29,99 @@ package.path = package.path .. ';.\\?\\init.lua'
 local Jumper = require ('Jumper')
 ```
 	
-**Note** : Some frameworks, like [Löve][] already includes  __.\init.lua__ in their <tt>package.path</tt>. In this case, you can just use :
+**Note** : Some frameworks, like [LÃ¶ve][] already includes  __.\init.lua__ in their <tt>package.path</tt>. In this case, you can just use :
 
 ```lua
 local Jumper = require('Jumper')
 ```
 
-###Setting your collision map
-The collision map is a regular Lua table where each cell holds a value, representing whether or not the corresponding tile in the 2D world is walkable
-or not.<br/>
-__Caution__ : *All cells in your collision maps must be indexed with consecutive integers*.
-
-```lua
-local map = {
-  {0,0,0,0,0,0},
-  {0,1,2,3,4,0},
-  {0,0,0,0,5,0},
-  {0,1,2,3,6,0},
-  {0,0,0,0,0,0},
-}
-```
-
-__Note__: Lua array lists starts __indexing at 1__, by default. If you happened to use some dedicated *librairies/map designing tools* to export your collisions maps to Lua,
-the resulting tables might __start indexing at 0__ or whatever else integer. This is fairly legit in Lua, but not common, though.
-__Jumper__ will accomodate such maps without any problems.
-
-
 ###Initializing Jumper###
-Once your collision map is set, you must specify what value in this collision map matches a __walkable__ tile. If you choose for instance *0* for *walkable tiles*, 
-__any other value__ will be considered as *non walkable*.
+
+To initialize the pathfinder, you will have to pass __four values__. 
 
 ```lua
-local map = {
-       {0,0,0},
-       {0,2,0},
-       {0,0,1},
-    }
-```
-
-To initialize the pathfinder, you will have to pass __five values__ to Jumper.
-
-```lua
-local walkable = 0
 local allowDiagonal = true
-local pather = Jumper(map,walkable,allowDiagonal,heuristicName,autoFill)
+local pather = Jumper(map,allowDiagonal,heuristicName,autoFill)
 ```
 
-Only the first argument is __required__, the __others__ left are __optional__.
+Only the first argument is __required__, the __others__ left are __optional__:
+
 * __map__ refers to the matrix representing the 2D world.
-* __walkable__ refers to the value representing walkable tiles. Will be considered as __0__ if not given.
 * __allowDiagonal__ is a boolean saying whether or not *diagonal moves* are allowed. Will be considered as __true__ if not given.
 * __heuristicName__ is a predefined string constant representing the *distance heuristic function* to be used for path computation.
 * __autoFill__ is a boolean to __enable or not__ for [automatic path filling](https://github.com/Yonaba/Jumper/#automatic-path-filling).
+
+###Setting your collision map
+####The collision map table
+The collision map is a regular 2-dimensional Lua table. All rows and columns __must be indexed__ with __consecutive integers__.<br/>
+In this table, __each value__ is a __byte__ (*i.e an integer number between 0 and 255*). This value would represent two things:
+
+* __whether or not__ a moving entity __can walk on__ the corresponding tile,
+* when the tile is walkable, __from which direction__ this tile __can be entered__.
+ 
+####Byte values : the basic rules
+On a regular 2D map, an entity can move in __8 directions__:
+
+* __orthogonally__: *north* (up), *south* (down), *west* (left), *east* (right),
+* __Diagonally__: *north-east*, *south-east*, *north-west*, *south-west*.
+
+We can represent this as follows:
+
+
+And thus, map each of these directions with the following values:
+
+
+So, when we affect to a cell a byte-value of __2__, it means this tile __can only be entered from the North__. A byte-value of __128__ would mean this tile __can only be entered from South-East__.
+
+####Composition rules
+Say that we want a tile to be entered from __both North and South__ directions, or __both East and West__...How would we proceed ?<br/>
+
+First, we will start calling __Jumper__, then load a third-party named *bitops.lua*.
+
+```lua
+local Jumper = require ('Jumper.init')
+local Dir = require 'bitops '
+```
+First, consider these assumptions :
+
+* Byte 255 corresponds to a fully walkable tile
+* Byte 0 corresponds to a fully unwalkable tile (tile that cannot be crossed)
+
+*bitops.lua* returns a table containing three functions:
+
+* AND (...)
+* OR (...)
+* NOT (...)
+
+These functions will help you baking __the desired byte value__ to be set to a cell on a collision map. Yet, they are very easy to use.
+
+* *Tile A* can be entered from *North or South or West or East*:
+
+```lua
+local byteA = Dir.OR(2,64,8,16)
+```
+
+* Now we want *Tile A* to remain as it is, but disable entry from *north-west* :
+
+```lua
+local byteB = Dir.AND(byteA,Dir.NOT(1))
+```
+
+* *Tile B* can be entered __from anywhere but__ *west, east or south-east*:
+
+```lua
+local byteB = Dir.NOT(8, 16,128)
+```
+
+* We want *Tile B* to remain as it is, but allow entry from *west*:
+
+```lua
+local byteB = Dir.OR(byteB,8)
+```
+
+And that's it!
+
+
 
 ###Distance heuristics###
 
@@ -127,14 +158,14 @@ local walkable = 0
 local allowDiagonal = true
 local Jumper = require('Jumper.init')
 local pather = Jumper(map,walkable,allowDiagonal)
-pather:setHeuristic('EUCLIDIAN')
+pather:setheuristic('EUCLIDIAN')
 ```
 
 ##Public interface##
 
 ###Pathfinder class interface
 
-Once Jumper was loaded and initialized properly, you can now used one of the following methods listed below.<br/>
+Once Jumper was loaded and initialized properly, you can used one of the following methods listed below.<br/>
 __Assuming <tt>pather</tt> represents an instance of <tt>Jumper</tt> class.__
 	
 #####pather:setHeuristic(NAME)
@@ -203,6 +234,7 @@ Returns the status of the __autoFilling__ feature
 
 <tt>pather:getGrid()</tt> returns a reference to the *internal grid* used by the pathfinder.
 On this reference, you can use one of the following methods.<br/>
+
 __Assuming *grid* holds the returned value from <tt>pather:getGrid()</tt>__
 
 #####grid:getNodeAt(x,y)
@@ -212,16 +244,24 @@ Returns a reference to *node (X,Y)* on the grid.
 * Argument __y__: *integer*
 * Returns: *node* (regular Lua table)
 
-####grid:isWalkableAt(x,y)
+#####grid:isWalkableAt(x,y,ux,uy)
+Returns a boolean saying whether or not *node (X,Y)* __exists__ on the grid __and is enterable__ heading along *a unit vector (ux,uy)*.
+
+* Argument __x__: *integer*
+* Argument __y__: *integer*
+* Argument __ux__: *integer* (either 0 or 1)
+* Argument __uy__: *integer* (either 0 or 1)
+* Returns: *boolean*
+
+#####grid:isWalkable(x,y)
 Returns a boolean saying whether or not *node (X,Y)* __exists__ on the grid and __is walkable__.
 
 * Argument __x__: *integer*
 * Argument __y__: *integer*
 * Returns: *boolean*
 
-####grid:setWalkableAt(x,y,walkable)
-Sets *node (X,Y)* __walkable or not__ depending on the boolean *walkable* given as argument:
-__true__ makes the node walkable, while __false__ makes it unwalkable.
+#####grid:setWalkableAt(x,y,walkable)
+Sets *node (X,Y)* walkable byte-value
 
 * Argument __x__: *integer*
 * Argument __y__: *integer*
@@ -235,6 +275,7 @@ This list will include or not adjacent nodes regards to the boolean *allowDiagon
 * Argument __node__: *node* (regular Lua table)
 * Argument __allowDiagonal__: *boolean*
 * Returns: *neighbours* (regular Lua table)
+
 
 ##Handling paths##
 
@@ -322,7 +363,7 @@ local Class = require '30log'
 ##Credits and Thanks##
 
 * [Daniel Harabor][], [Alban Grastien][] : for [technical papers][].<br/>
-* [XueXiao Xu][], [Nathan Witmer][]: for the JavaScript [port][] or Jump Point Search.<br/>
+* [XueXiao Xu][], [Nathan Witmer][]: for their amazing [port][] in Javascript<br/>
 
 ##License##
 
@@ -352,8 +393,8 @@ Copyright (c) 2012 Roland Yonaba
 [30log]: http://yonaba.github.com/30log
 [Lua]: http://lua.org
 [Binary heaps]: http://yonaba.github.com/Binary-Heaps/
-[Löve]: https://love2d.org
-[Löve 0.8.0 Framework]: https://love2d.org
+[LÃ¶ve]: https://love2d.org
+[LÃ¶ve 0.8.0 Framework]: https://love2d.org
 [Dragon Age : Origins]: http://dragonage.bioware.com
 [Moving AI]: http://movingai.com
 [Nathan Witmer]: https://github.com/aniero

@@ -22,25 +22,26 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --]]
 
 if (...) then
-  local _PATH = (...):gsub('[^%.]+$','')
+  local _PATH = (...):gsub('[^%.]+$','')   
+  local assert = assert
 
   -- Loads dependancies
   local Class = require (_PATH .. 'third-party.30log.30log')
 
   -- Internal Node Class
-  local Node = Class { walkable = true }
+  local Node = Class { }
 
   -- Custom initializer for nodes
   function Node:__init(x,y,walkable)
     self.x = x
     self.y = y
-    self.walkable = walkable and true -- A node will be walkable by default
+    self.walkable = walkable -- byte
   end
 
   -- Enables the use of operator '<' to compare nodes.
   -- Will be used to sort a collection nodes in a binary heap on the basis of their F-cost
   function Node.__lt(A,B) return (A.f < B.f) end
-
+  
   return Node
 end
 

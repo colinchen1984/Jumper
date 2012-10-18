@@ -9,7 +9,7 @@ The specific change is an experimental feature included to support tiles with *s
 <center><img src="http://ompldr.org/vZnhhaA" alt="" width="500" height="391" border="0" /></center>
 
 ##Installation
-The current repository can be retrieved locally on your computer using the following bash script:
+This branch can be retrieved locally on your computer using the following bash script:
 
 ```bash
 git clone -b experimental git://github.com/Yonaba/Jumper.git --recursive

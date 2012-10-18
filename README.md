@@ -5,7 +5,7 @@ This is a modified version of the pathfinding library [Jumper](https://github.co
 It features the same features as the official release. The specific change is an experimental feature included to support tiles with specific rules of walkability, such as one-way tiles.
 
 
-<center><img src="???" alt="" width="500" height="391" border="0" /></center>
+<center><img src="http://ompldr.org/vZnhhaA" alt="" width="500" height="391" border="0" /></center>
 
 ##Installation
 The current repository can be retrieved locally on your computer using the following bash script:
@@ -67,9 +67,11 @@ On a regular 2D map, an entity can move in __8 directions__:
 
 We can represent this as follows:
 
+<center><img src="http://ompldr.org/vZnhhZA" alt="" width="163" height="62" border="0" /></center>
 
 And thus, map each of these directions with the following values:
 
+<center><img src="http://ompldr.org/vZnhhZQ" alt="" width="163" height="62" border="0" /></center>
 
 So, when we affect to a cell a byte-value of __2__, it means this tile __can only be entered from the North__. A byte-value of __128__ would mean this tile __can only be entered from South-East__.
 
@@ -404,4 +406,3 @@ Copyright (c) 2012 Roland Yonaba
 [Daniel Harabor]: http://users.cecs.anu.edu.au/~dharabor/home.html
 [technical papers]: http://users.cecs.anu.edu.au/~dharabor/data/papers/harabor-grastien-aaai11.pdf
 [MIT-LICENSE]: http://www.opensource.org/licenses/mit-license.php
-[heuristics.lua]: https://github.com/Yonaba/Jumper/blob/master/Jumper/core/heuristics.lua

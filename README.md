@@ -147,21 +147,19 @@ If you want to use __another distance heuristic__, you will have to pass one of 
 As an example :
 
 ```lua
-local walkable = 0
 local allowDiagonal = true
+local autoFill = false
 local Heuristics. = require 'Jumper.core.heuristics'
 local Jumper = require('Jumper.init')
-local pather = Jumper(map,walkable,allowDiagonal,'EUCLIDIAN')
+local pather = Jumper(map,allowDiagonal,autoFill,'EUCLIDIAN')
 ```
 
 You can __alternatively__ use <tt>pather:setHeuristic(Name)</tt>:
 
 ```lua
-local walkable = 0
-local allowDiagonal = true
 local Jumper = require('Jumper.init')
-local pather = Jumper(map,walkable,allowDiagonal)
-pather:setheuristic('EUCLIDIAN')
+local pather = Jumper(map)
+pather:setHeuristic('EUCLIDIAN')
 ```
 
 ##Public interface##
@@ -306,12 +304,10 @@ You can accomodate of this by yourself, or use the __path filling__ feature.
 
 __Jumper__ provides a __path filling__ feature that can be used to polish a path early computed, filling the holes it may contain.
 
-```lua  
-local walkable = 0
-local allowDiagonal = true
+```lua
 local Jumper = require('Jumper.init')
 -- Assuming map is defined
-local pather = Jumper(map,walkable,allowDiagonal)
+local pather = Jumper(map)
 local path, length = pather:getPath(1,1,3,3)
 -- Just pass the path to pather:fill().
 pather:fill(path)
@@ -322,11 +318,9 @@ This feature will trigger the <tt>pather:fill()</tt> everytime <tt>pather:getPat
 Yet, it is very simple to use:
 
 ```lua  
-local walkable = 0
-local allowDiagonal = true
 local Jumper = require('Jumper.init')
 -- Assuming map is defined
-local pather = Jumper(map,walkable,allowDiagonal)
+local pather = Jumper(map)
 pather:setAutoFill(true)
 local path, length = pather:getPath(1,1,3,3)
 -- No need to use path:fill() now !

@@ -2,7 +2,8 @@ Jumper
 ======
 
 This is a modified version of the pathfinding library [Jumper](https://github.com/Yonaba/Jumper/blob/master). <br/>
-It features the same features as the official release. The specific change is an experimental feature included to support tiles with specific rules of walkability, such as one-way tiles.
+It has the exact same features as the official release.<br/>
+The specific change is an experimental feature included to support tiles with *specific rules of walkability*, such as one-way tiles.
 
 
 <center><img src="http://ompldr.org/vZnhhaA" alt="" width="500" height="391" border="0" /></center>
